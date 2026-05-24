@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Buscar ID</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Buscar ID</h1>
+    </div>
+    <div class="sep"></div>
+
+    <div id="msg" class="msg" style="display:none;"></div>
+
+    <div class="form-group">
+      <label>Tipo de ID</label>
+      <select id="tipo">
+        {% for t in types %}
+        <option value="{{ t }}">{{ t }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div class="form-group">
+      <label>N&uacute;mero (3 d&iacute;gitos)</label>
+      <input type="text" id="numero" inputmode="numeric" maxlength="4" autofocus>
+    </div>
+
+    <button class="btn-primary" onclick="buscar()">Buscar &rarr;</button>
+
+    <div class="footer-bar">
+      <a href="/" class="btn-outline muted">Volver</a>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('numero').addEventListener('keydown', e => {
+      if (e.key === 'Enter') buscar();
+    });
+
+    function buscar() {
+      const tipo = document.getElementById('tipo').value;
+      const numero = document.getElementById('numero').value.trim();
+      const msg = document.getElementById('msg');
+
+      if (!numero) return;
+
+      msg.style.display = 'none';
+
+      fetch('/api/buscar?tipo=' + encodeURIComponent(tipo) + '&numero=' + encodeURIComponent(numero))
+        .then(r => r.json())
+        .then(data => {
+          if (data.found) {
+            window.location.href = '/crear?name=' + encodeURIComponent(data.id);
+          } else {
+            msg.className = 'msg error';
+            msg.textContent = 'Ese ID no existe.';
+            msg.style.display = 'block';
+          }
+        })
+        .catch(() => {
+          msg.className = 'msg error';
+          msg.textContent = 'Error de conexi&oacute;n.';
+          msg.style.display = 'block';
+        });
+    }
+  </script>
+</body>
+</html>

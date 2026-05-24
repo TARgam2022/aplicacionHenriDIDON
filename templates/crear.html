@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if edit_id %}Editar Registro{% else %}Nuevo Registro{% endif %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>{% if edit_id %}Editar Registro{% else %}Nuevo Registro{% endif %}</h1>
+    </div>
+    <div class="sep"></div>
+
+    <div id="msg" class="msg" style="display:none;"></div>
+
+    <form id="form" onsubmit="return guardar()">
+      <div class="form-group">
+        <label>Nombre <span class="req">*</span></label>
+        {% if name and not edit_id %}
+          <div class="id-badge">{{ name }}</div>
+          <input type="hidden" name="name" value="{{ name }}">
+        {% else %}
+          <input type="text" name="name" id="name" required>
+        {% endif %}
+      </div>
+
+      <!-- Prueba 1 -->
+      <div class="test-section">
+        <div class="sep" style="margin:12px 0 8px;"></div>
+        <div class="test-title">Prueba 1: Fuerza de brazos (repeticiones)</div>
+        <div class="test-row">
+          <div class="test-input">
+            <label>Rep 1</label>
+            <input type="text" inputmode="numeric" class="t1" data-idx="0">
+          </div>
+          <div class="test-input">
+            <label>Rep 2</label>
+            <input type="text" inputmode="numeric" class="t1" data-idx="1">
+          </div>
+          <div class="test-input">
+            <label>Rep 3</label>
+            <input type="text" inputmode="numeric" class="t1" data-idx="2">
+          </div>
+          <div class="test-calc">
+            <label>Promedio</label>
+            <span class="calc-value" id="brazos_avg">&mdash;</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prueba 2 -->
+      <div class="test-section">
+        <div class="sep" style="margin:12px 0 8px;"></div>
+        <div class="test-title">Prueba 2: Fuerza abdominal (repeticiones)</div>
+        <div class="test-row">
+          <div class="test-input">
+            <label>Rep 1</label>
+            <input type="text" inputmode="numeric" class="t2" data-idx="0">
+          </div>
+          <div class="test-input">
+            <label>Rep 2</label>
+            <input type="text" inputmode="numeric" class="t2" data-idx="1">
+          </div>
+          <div class="test-input">
+            <label>Rep 3</label>
+            <input type="text" inputmode="numeric" class="t2" data-idx="2">
+          </div>
+          <div class="test-calc">
+            <label>Promedio</label>
+            <span class="calc-value" id="abdominal_avg">&mdash;</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prueba 3 -->
+      <div class="test-section">
+        <div class="sep" style="margin:12px 0 8px;"></div>
+        <div class="test-title">Prueba 3: Fuerza inferior &mdash; Salto (cm)</div>
+        <div class="test-row">
+          <div class="test-input">
+            <label>Intento 1</label>
+            <input type="text" inputmode="decimal" class="t3" data-idx="0">
+          </div>
+          <div class="test-input">
+            <label>Intento 2</label>
+            <input type="text" inputmode="decimal" class="t3" data-idx="1">
+          </div>
+          <div class="test-input">
+            <label>Intento 3</label>
+            <input type="text" inputmode="decimal" class="t3" data-idx="2">
+          </div>
+          <div class="test-calc">
+            <label>M&aacute;ximo</label>
+            <span class="calc-value" id="salto_max">&mdash;</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prueba 4 -->
+      <div class="test-section">
+        <div class="sep" style="margin:12px 0 8px;"></div>
+        <div class="test-title">Prueba 4: Flexibilidad est&aacute;tica (cm)</div>
+        <div class="test-row">
+          <div class="test-input">
+            <label>Intento 1</label>
+            <input type="text" inputmode="decimal" class="t4" data-idx="0">
+          </div>
+          <div class="test-input">
+            <label>Intento 2</label>
+            <input type="text" inputmode="decimal" class="t4" data-idx="1">
+          </div>
+          <div class="test-input">
+            <label>Intento 3</label>
+            <input type="text" inputmode="decimal" class="t4" data-idx="2">
+          </div>
+          <div class="test-calc">
+            <label>M&aacute;ximo</label>
+            <span class="calc-value" id="flex_max">&mdash;</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Prueba 5 -->
+      <div class="test-section">
+        <div class="sep" style="margin:12px 0 8px;"></div>
+        <div class="test-title">Prueba 5: Resistencia 20m (Course-Navette)</div>
+        <div class="test-row">
+          <div class="test-input">
+            <label>Paliers</label>
+            <input type="text" inputmode="numeric" id="palieres">
+          </div>
+          <div class="test-calc">
+            <label>VAM (km/h)</label>
+            <span class="calc-value" id="vam">&mdash;</span>
+          </div>
+          <div class="test-calc">
+            <label>VO&sub2;max (ml/kg/min)</label>
+            <span class="calc-value" id="vo2max">&mdash;</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="footer-bar">
+        <a href="{% if edit_id %}/editar{% else %}/{% endif %}" class="btn-outline muted">Cancelar</a>
+        <button type="submit" class="btn-primary">Guardar &rarr;</button>
+      </div>
+    </form>
+  </div>
+
+  <script>
+    // ── Real-time calculations ──
+
+    function calcAvg(els) {
+      const vals = [];
+      els.forEach(el => {
+        const v = parseFloat(el.value);
+        if (!isNaN(v)) vals.push(v);
+      });
+      return vals.length === 3 ? (vals.reduce((a,b) => a+b, 0) / 3).toFixed(1) : '\u2014';
+    }
+
+    function calcMax(els) {
+      const vals = [];
+      els.forEach(el => {
+        const v = parseFloat(el.value);
+        if (!isNaN(v)) vals.push(v);
+      });
+      return vals.length > 0 ? Math.max(...vals).toFixed(1) : '\u2014';
+    }
+
+    function calcVAM(p) {
+      if (p > 0) {
+        const vam = 7.5 + 0.5 * p;
+        return { vam: vam.toFixed(1), vo2: (3.5 * vam).toFixed(1) };
+      }
+      return { vam: '\u2014', vo2: '\u2014' };
+    }
+
+    function onInput(group, calcId, fn) {
+      const inputs = document.querySelectorAll(group);
+      inputs.forEach(el => {
+        el.addEventListener('input', () => {
+          document.getElementById(calcId).textContent = fn(inputs);
+        });
+      });
+    }
+
+    onInput('.t1', 'brazos_avg', calcAvg);
+    onInput('.t2', 'abdominal_avg', calcAvg);
+    onInput('.t3', 'salto_max', calcMax);
+    onInput('.t4', 'flex_max', calcMax);
+
+    document.getElementById('palieres').addEventListener('input', function() {
+      const p = parseInt(this.value);
+      const r = calcVAM(p);
+      document.getElementById('vam').textContent = r.vam;
+      document.getElementById('vo2max').textContent = r.vo2;
+    });
+
+    // ── Auth check for edit mode ──
+    {% if edit_id %}
+    if (!sessionStorage.getItem('edit_pw')) {
+      window.location.href = '/';
+    }
+    {% endif %}
+
+    // ── Auth header helper ──
+    function authHeaders() {
+      var pw = sessionStorage.getItem('edit_pw');
+      return pw ? { 'Content-Type': 'application/json', 'X-Edit-Password': pw } : { 'Content-Type': 'application/json' };
+    }
+
+    // ── Load existing data for editing ──
+    {% if edit_id %}
+    fetch('/api/records/{{ edit_id }}')
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) return;
+        document.getElementById('name').value = data.name || '';
+
+        const t1 = document.querySelectorAll('.t1');
+        if (data.brazos_r1 != null) { t1[0].value = data.brazos_r1; t1[1].value = data.brazos_r2; t1[2].value = data.brazos_r3; }
+
+        const t2 = document.querySelectorAll('.t2');
+        if (data.abdominal_r1 != null) { t2[0].value = data.abdominal_r1; t2[1].value = data.abdominal_r2; t2[2].value = data.abdominal_r3; }
+
+        const t3 = document.querySelectorAll('.t3');
+        if (data.salto_c1 != null) { t3[0].value = data.salto_c1; t3[1].value = data.salto_c2; t3[2].value = data.salto_c3; }
+
+        const t4 = document.querySelectorAll('.t4');
+        if (data.flex_c1 != null) { t4[0].value = data.flex_c1; t4[1].value = data.flex_c2; t4[2].value = data.flex_c3; }
+
+        if (data.palieres != null) document.getElementById('palieres').value = data.palieres;
+
+        // trigger recalc
+        t1.forEach(el => el.dispatchEvent(new Event('input')));
+        t2.forEach(el => el.dispatchEvent(new Event('input')));
+        t3.forEach(el => el.dispatchEvent(new Event('input')));
+        t4.forEach(el => el.dispatchEvent(new Event('input')));
+        document.getElementById('palieres').dispatchEvent(new Event('input'));
+      });
+    {% endif %}
+
+    // ── Submit ──
+
+    function getVals(sel) {
+      const inputs = document.querySelectorAll(sel);
+      return Array.from(inputs).map(el => {
+        const v = el.value.trim();
+        return v === '' ? null : parseFloat(v);
+      });
+    }
+
+    function guardar() {
+      const msg = document.getElementById('msg');
+      msg.style.display = 'none';
+
+      let name;
+      {% if name and not edit_id %}
+        name = '{{ name }}';
+      {% else %}
+        name = document.getElementById('name').value.trim();
+        if (!name) {
+          msg.className = 'msg error';
+          msg.textContent = 'Nombre es obligatorio.';
+          msg.style.display = 'block';
+          return false;
+        }
+      {% endif %}
+
+      const t1 = getVals('.t1');
+      const t2 = getVals('.t2');
+      const t3 = getVals('.t3');
+      const t4 = getVals('.t4');
+      const p = getVals('#palieres');
+
+      const body = { name };
+
+      function store3(vals, r1, r2, r3, avg) {
+        if (vals.some(v => v != null)) {
+          body[r1] = vals[0]; body[r2] = vals[1]; body[r3] = vals[2];
+          if (vals.every(v => v != null)) body[avg] = Math.round((vals[0]+vals[1]+vals[2])/3 * 10) / 10;
+          else body[avg] = null;
+        } else {
+          body[r1] = body[r2] = body[r3] = body[avg] = null;
+        }
+      }
+
+      function storeMax(vals, c1, c2, c3, mx) {
+        const clean = vals.filter(v => v != null);
+        if (clean.length > 0) {
+          body[c1] = vals[0]; body[c2] = vals[1]; body[c3] = vals[2];
+          body[mx] = Math.round(Math.max(...clean) * 10) / 10;
+        } else {
+          body[c1] = body[c2] = body[c3] = body[mx] = null;
+        }
+      }
+
+      store3(t1, 'brazos_r1','brazos_r2','brazos_r3','brazos_avg');
+      store3(t2, 'abdominal_r1','abdominal_r2','abdominal_r3','abdominal_avg');
+      storeMax(t3, 'salto_c1','salto_c2','salto_c3','salto_max');
+      storeMax(t4, 'flex_c1','flex_c2','flex_c3','flex_max');
+
+      if (p[0] != null && p[0] > 0) {
+        const vam = 7.5 + 0.5 * p[0];
+        body.palieres = p[0];
+        body.vam = Math.round(vam * 10) / 10;
+        body.vo2max = Math.round(3.5 * vam * 10) / 10;
+      } else {
+        body.palieres = body.vam = body.vo2max = null;
+      }
+
+      const url = {% if edit_id %} '/api/records/{{ edit_id }}' {% else %} '/api/records' {% endif %};
+      const method = {% if edit_id %} 'PUT' {% else %} 'POST' {% endif %};
+
+      fetch(url, {
+        method,
+        headers: method === 'PUT' ? authHeaders() : { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      })
+      .then(r => r.json().then(d => ({ status: r.status, data: d })))
+      .then(({ status, data }) => {
+        if (status === 409 || data.error) {
+          msg.className = 'msg error';
+          msg.textContent = data.error || 'Error al guardar.';
+          msg.style.display = 'block';
+          return;
+        }
+        window.location.href = '/';
+      })
+      .catch(() => {
+        msg.className = 'msg error';
+        msg.textContent = 'Error de conexi\u00f3n.';
+        msg.style.display = 'block';
+      });
+
+      return false;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Registros</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <style>
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal.active { display: flex; }
+    .modal-box {
+      background: #fff;
+      padding: 32px 28px;
+      max-width: 380px;
+      width: 90%;
+    }
+    .modal-box h2 {
+      font-family: Georgia, serif;
+      font-size: 1.2rem;
+      margin-bottom: 16px;
+    }
+    .modal-box input {
+      width: 100%;
+      font-size: 1rem;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      background: var(--bg2);
+      color: var(--fg);
+      font-family: var(--font);
+      outline: none;
+      margin-bottom: 12px;
+    }
+    .modal-box input:focus { border-color: var(--accent); }
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+    .modal-err {
+      color: var(--error);
+      font-size: .85rem;
+      margin-bottom: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>GESTOR</h1>
+      <span>/ registros</span>
+    </div>
+    <div class="sep"></div>
+
+    <p style="text-align:center;color:var(--muted);margin-bottom:24px;">
+      Selecciona una acci&oacute;n para continuar.
+    </p>
+
+    <div class="btn-big-wrap">
+      <a href="/buscar" class="btn-big">
+        <span class="icon">+</span>
+        <span class="label">CREAR</span>
+      </a>
+      <a href="#" class="btn-big" id="editarBtn">
+        <span class="icon">&#9998;</span>
+        <span class="label">EDITAR</span>
+      </a>
+    </div>
+
+    <p style="text-align:center;color:var(--muted);font-size:.9rem;margin-top:32px;" id="count">
+      Cargando&hellip;
+    </p>
+  </div>
+
+  <!-- Password Modal -->
+  <div class="modal" id="pwModal">
+    <div class="modal-box">
+      <h2>Editar registros</h2>
+      <p style="font-size:.9rem;color:var(--muted);margin-bottom:14px;">
+        Ingresa la contrase&ntilde;a para acceder.
+      </p>
+      <div class="modal-err" id="pwErr">Contrase&ntilde;a incorrecta.</div>
+      <input type="password" id="pwInput" placeholder="Contrase&ntilde;a" autofocus>
+      <div class="modal-actions">
+        <button class="btn-outline muted" onclick="cerrarModal()">Cancelar</button>
+        <button class="btn-primary" onclick="verificar()">Entrar &rarr;</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById('editarBtn').addEventListener('click', function(e) {
+      e.preventDefault();
+      var stored = sessionStorage.getItem('edit_pw');
+      if (stored) {
+        window.location.href = '/editar';
+      } else {
+        document.getElementById('pwModal').classList.add('active');
+        document.getElementById('pwInput').value = '';
+        document.getElementById('pwErr').style.display = 'none';
+        setTimeout(function() { document.getElementById('pwInput').focus(); }, 100);
+      }
+    });
+
+    document.getElementById('pwInput').addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') verificar();
+    });
+
+    function cerrarModal() {
+      document.getElementById('pwModal').classList.remove('active');
+    }
+
+    function verificar() {
+      var pw = document.getElementById('pwInput').value;
+      fetch('/api/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pw })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (data.ok) {
+          sessionStorage.setItem('edit_pw', pw);
+          cerrarModal();
+          window.location.href = '/editar';
+        } else {
+          document.getElementById('pwErr').style.display = 'block';
+        }
+      })
+      .catch(function() {
+        document.getElementById('pwErr').textContent = 'Error de conexi&oacute;n.';
+        document.getElementById('pwErr').style.display = 'block';
+      });
+    }
+
+    fetch('/api/records')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        document.getElementById('count').textContent =
+          data.length + ' registro(s) almacenado(s)';
+      })
+      .catch(function() {
+        document.getElementById('count').textContent =
+          'No se pudo conectar al servidor.';
+      });
+  </script>
+</body>
+</html>

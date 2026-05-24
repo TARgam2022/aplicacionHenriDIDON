@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Editar Registros</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Registros</h1>
+      <span id="count"></span>
+    </div>
+    <div class="sep"></div>
+
+    <div id="msg" class="msg" style="display:none;"></div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div id="empty" class="empty" style="display:none;">No hay registros todav&iacute;a.</div>
+
+    <div class="footer-bar">
+      <a href="/" class="btn-outline muted">Volver</a>
+      <button class="btn-outline" onclick="exportar()" id="exportBtn">Exportar a Excel &rarr;</button>
+    </div>
+  </div>
+
+  <script>
+    var pw = sessionStorage.getItem('edit_pw');
+    if (!pw) {
+      window.location.href = '/';
+    }
+
+    function authHeaders() {
+      return {
+        'Content-Type': 'application/json',
+        'X-Edit-Password': pw
+      };
+    }
+
+    function cargar() {
+      fetch('/api/records')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          var tbody = document.getElementById('tbody');
+          var empty = document.getElementById('empty');
+          var count = document.getElementById('count');
+          tbody.innerHTML = '';
+
+          count.textContent = data.length + ' entrada(s)';
+
+          if (data.length === 0) {
+            empty.style.display = 'block';
+            return;
+          }
+          empty.style.display = 'none';
+
+          data.forEach(function(rec) {
+            var tr = document.createElement('tr');
+            tr.innerHTML =
+              '<td>' + (rec.name || '\u2014') + '</td>' +
+              '<td class="actions">' +
+                '<a href="/editar/' + rec.id + '" class="btn-outline muted">&#9998; Editar</a> ' +
+                '<button class="btn-outline" onclick="eliminar(' + rec.id + ", '" + (rec.name || '').replace(/'/g, "\\'") + "')\">&#10005; Borrar</button>" +
+              '</td>';
+            tbody.appendChild(tr);
+          });
+        })
+        .catch(function() {
+          document.getElementById('msg').className = 'msg error';
+          document.getElementById('msg').textContent = 'Error de conexi\u00f3n.';
+          document.getElementById('msg').style.display = 'block';
+        });
+    }
+
+    function eliminar(id, name) {
+      if (!confirm('\u00bfEliminar \'' + name + '\'?')) return;
+      fetch('/api/records/' + id, {
+        method: 'DELETE',
+        headers: authHeaders()
+      })
+        .then(function(r) {
+          if (r.status === 403) {
+            sessionStorage.removeItem('edit_pw');
+            window.location.href = '/';
+            return;
+          }
+          return r.json();
+        })
+        .then(function() { cargar(); })
+        .catch(function() { alert('Error al eliminar.'); });
+    }
+
+    function exportar() {
+      var xhr = new XMLHttpRequest();
+      xhr.open('GET', '/api/export', true);
+      xhr.setRequestHeader('X-Edit-Password', pw);
+      xhr.responseType = 'blob';
+      xhr.onload = function() {
+        if (xhr.status === 403) {
+          sessionStorage.removeItem('edit_pw');
+          window.location.href = '/';
+          return;
+        }
+        var url = window.URL.createObjectURL(xhr.response);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'registros.xlsx';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      };
+      xhr.onerror = function() { alert('Error al exportar.'); };
+      xhr.send();
+    }
+
+    cargar();
+  </script>
+</body>
+</html>
