@@ -384,8 +384,8 @@ class App(tk.Tk):
             bv[1].set(str(existing["brazos_r2"]))
             bv[2].set(str(existing["brazos_r3"]))
         def _upd_brazos(*_):
-            vals = [_int(v.get()) for v in bv]
-            bcalc.config(text=f"{sum(vals)/3:.1f}" if all(v is not None for v in vals) else "—")
+            vals = [x for x in [_int(v.get()) for v in bv] if x is not None]
+            bcalc.config(text=f"{sum(vals)/len(vals):.1f}" if vals else "—")
         for v in bv: v.trace_add("write", _upd_brazos)
 
         # ── Prueba 2: Fuerza abdominal ────────────────────────────────────
@@ -398,8 +398,8 @@ class App(tk.Tk):
             av[1].set(str(existing["abdominal_r2"]))
             av[2].set(str(existing["abdominal_r3"]))
         def _upd_abdominal(*_):
-            vals = [_int(v.get()) for v in av]
-            acalc.config(text=f"{sum(vals)/3:.1f}" if all(v is not None for v in vals) else "—")
+            vals = [x for x in [_int(v.get()) for v in av] if x is not None]
+            acalc.config(text=f"{sum(vals)/len(vals):.1f}" if vals else "—")
         for v in av: v.trace_add("write", _upd_abdominal)
 
         # ── Prueba 3: Salto ───────────────────────────────────────────────
@@ -525,7 +525,8 @@ class App(tk.Tk):
                 d = {}
                 any_val = any(v is not None for v in vals)
                 d[keys[0]], d[keys[1]], d[keys[2]] = vals if any_val else (None, None, None)
-                d[keys[3]] = round(sum(vals)/3, 1) if any_val and all(v is not None for v in vals) else None
+                clean = [v for v in vals if v is not None]
+                d[keys[3]] = round(sum(clean)/len(clean), 1) if clean else None
                 return d
 
             rec = {"name": name_val}
