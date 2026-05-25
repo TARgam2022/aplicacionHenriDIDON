@@ -331,9 +331,21 @@ def api_export():
         cell.alignment = halign
         cell.border = border
 
+    def _export_avg(row, prefix):
+        r1, r2, r3 = row.get(f"{prefix}_r1"), row.get(f"{prefix}_r2"), row.get(f"{prefix}_r3")
+        vals = [v for v in (r1, r2, r3) if v is not None]
+        return round(sum(vals) / len(vals), 1) if vals else ""
+
     for r, row in enumerate(rows, 2):
         for c, (key, _) in enumerate(EXPORT_FIELDS, 1):
-            val = row[key] if row[key] is not None else ""
+            val = row.get(key)
+            if val is None:
+                if key == "brazos_avg":
+                    val = _export_avg(row, "brazos")
+                elif key == "abdominal_avg":
+                    val = _export_avg(row, "abdominal")
+                else:
+                    val = ""
             cell = ws.cell(row=r, column=c, value=val)
             cell.font = Font(name="Helvetica Neue", size=10)
             cell.alignment = Alignment(horizontal="center", vertical="center")
